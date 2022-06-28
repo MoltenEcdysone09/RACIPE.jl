@@ -108,13 +108,13 @@ function thr_gen(init_param::Int, numA::Int, numI::Int)
 end
 
 #=
-Function: create_rxn
+Function: createRxnNet
 Class: proper (i.e., outputs a variable) + side effect
 Input: Name of the topology file (*.topo)
 Output: List of parameters (param_list)  + A reaction network file representing the network through a systems of ODEs
 Description: Takes the network topology as an input through the topo file, parses the file and create a .jl file of the same name havig the coupled odes representing the topology as the output file. Also reutrns the paramter list which is generted during this process, which will be used by param_gen function to generate paramters.
 =#
-function create_rxn(topoFile::String)
+function createRxnNet(topoFile::String)
     # Create the reaction network file
     rnfl = open(replace(topoFile, "topo" => "jl"), "w")
     #write Hsn and Hsp ration functions in reation network file
@@ -197,13 +197,13 @@ end
 
 
 #=
-Function: param_gen
+Function: genParams
 Class: side effect
 Input: Name of the topology file (*.topo), List of the paramters (same as that in the rxn file), number of parameters
 Output: Paramter File
 Description: Generates paramters corresponding to the topology file
 =#
-function param_gen(topoFile::String,param_list::Vector{String}; numParas::Int = 1000)
+function genParams(topoFile::String,param_list::Vector{String}; numParas::Int = 1000)
     # Read the topo file as a delimited file
     topo_dat = readdlm(topoFile)
     # Removing the empty line
