@@ -203,7 +203,7 @@ Input: Name of the topology file (*.topo), List of the paramters (same as that i
 Output: Paramter File
 Description: Generates paramters corresponding to the topology file
 =#
-function genParams(topoFile::String,param_list::Vector{String}; numParas::Int = 1000)
+function genParams(topoFile::String,param_list::Vector{String}; numParas::Int64 = 1000)
     # Read the topo file as a delimited file
     topo_dat = readdlm(topoFile)
     # Removing the empty line
@@ -249,4 +249,5 @@ function genParams(topoFile::String,param_list::Vector{String}; numParas::Int = 
     CSV.write(replace(topoFile, "topo" => "prs"), param_df)
 end
 
+export createRxnNet, genParams
 

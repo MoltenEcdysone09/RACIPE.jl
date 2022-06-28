@@ -123,10 +123,10 @@ Output: Steady states and their frequencies for that parameter set.
 Description: Takes in paramter set and the number of initial conditions as the input, creates an ODE Problem, which is then converted into a EnsembleProblem. The EnsembleProblem is then simulated over the initial condiations (parallel simulations), the output is then passed to indentify steady states function, which then gives the final output.
 =#
 ##
-function simulateEnsemble!(p, num_ini::Int64, num_nodes::Int64)
+function simulateEnsemble!(RxnNet, p, num_ini::Int64, num_nodes::Int64)
     u0 = rand(Uniform(0,100), num_nodes)::Vector{Float64}
     tspan = (0.0, 100.0)::Tuple{Float64, Float64}
-    prob = ODEProblem{true}(rn!, u0, tspan, p)
+    prob = ODEProblem{true}(RxnNet, u0, tspan, p)
     ensemble_prob = EnsembleProblem(prob,prob_func=prob_func)
     sim = solve(ensemble_prob, Tsit5(),save_everystep=false,save_start=false,callback=TerminateSteadyState(1e-3, 1e-5),EnsembleThreads(),trajectories=num_ini)
     return identifyStates!(roundStates!(sim, num_ini))
@@ -140,7 +140,7 @@ Output: A dataframe with the paramters and thier corresponding steady states
 Description: Parses the paramter file into a matrix and then converts it into a matrix. Loops through the matrix rows to simulate the network over multiple initial conditions. Finally, the steady states identified are then compiles into a dataframe along with thier paramter sets (similar to solution.dat).
 =#
 ##
-function runRACIPE(param_file::String; paramSets=1:10, num_ini::Int64=100)
+function runRACIPE(rxnNet, param_file::String; paramSets=1:10, num_ini::Int64=100)
     #param_df = readParameters(param_file)
     #param_df = CSV.read(param_file, DataFrame)
     #node_names = [i[2:end] for i in param_names if findfirst("g", i) == 1:1]
@@ -159,7 +159,7 @@ function runRACIPE(param_file::String; paramSets=1:10, num_ini::Int64=100)
     solMatrix = []::Vector{Any}
     # Loop througha all the parameters to solve them and get thier solutions
     for f in paramSets
-        simu_results = simulateEnsemble!(param_df[f,:], num_ini, num_nodes)
+        simu_results = simulateEnsemble!(rxnNet, param_df[f,:], num_ini, num_nodes)
         for (key, value) in simu_results
             push!(solMatrix, vcat(f, param_df[f,:], key, round(value, digits=4)))
         end
@@ -171,6 +171,8 @@ function runRACIPE(param_file::String; paramSets=1:10, num_ini::Int64=100)
     # Return the dataframe of solutions
     return DataFrame(solMatrix, solCols)
 end
+
+export runRACIPE
 
 ##
 #include("TS.jl")
