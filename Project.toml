@@ -1,4 +1,4 @@
-name = "RACIPE"
+name = "RACIPE.jl"
 uuid = "6f6b54d0-9bc1-4a3d-879e-e8e6eed2ed48"
 authors = ["Pradyumna Harlapur", "Kishore Hari"]
 version = "0.1.0"
