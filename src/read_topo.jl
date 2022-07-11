@@ -248,7 +248,9 @@ Output: Paramter File
 Description: Generates paramters file corresponding to the topology file which contains their Min and Max values.
 =#
 ##
-function genPrsFile(topoFile::String,param_list::Vector{String}; numParas::Int64 = 1000)
+function genPrsFile(topoFile::String; numParas::Int64 = 1000)
+    #Create a lsit of the parameters from the topo file
+    param_list = rxnParamsList(topoFile)
     # Read the topo file as a delimited file
     topo_dat = readdlm(topoFile)
     # Removing the empty line

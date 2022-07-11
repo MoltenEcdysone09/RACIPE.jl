@@ -139,7 +139,7 @@ Output: A dataframe with the paramters and thier corresponding steady states
 Description: Parses the paramter file into a matrix and then converts it into a matrix. Loops through the matrix rows to simulate the network over multiple initial conditions. Finally, the steady states identified are then compiles into a dataframe along with thier paramter sets (similar to solution.dat).
 =#
 ##
-function runRACIPE(rxnNet, param_file::String; paramSets=1:1, num_ini::Int64=100)
+function runRACIPE(rxnNet, param_file::String; paramSets=1:1, num_ini::Int64=1000)
     #param_df = readParameters(param_file)
     #param_df = CSV.read(param_file, DataFrame)
     #node_names = [i[2:end] for i in param_names if findfirst("g", i) == 1:1]
