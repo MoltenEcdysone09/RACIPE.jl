@@ -9,7 +9,6 @@ using ProgressMeter
 using StatsBase
 using DataStructures: SortedDict, Reverse
 using Combinatorics
-using BenchmarkTools
 
 #=
 Function: round_log!
@@ -140,7 +139,7 @@ Output: A dataframe with the paramters and thier corresponding steady states
 Description: Parses the paramter file into a matrix and then converts it into a matrix. Loops through the matrix rows to simulate the network over multiple initial conditions. Finally, the steady states identified are then compiles into a dataframe along with thier paramter sets (similar to solution.dat).
 =#
 ##
-function runRACIPE(rxnNet, param_file::String; paramSets=1:10, num_ini::Int64=100)
+function runRACIPE(rxnNet, param_file::String; paramSets=1:1, num_ini::Int64=100)
     #param_df = readParameters(param_file)
     #param_df = CSV.read(param_file, DataFrame)
     #node_names = [i[2:end] for i in param_names if findfirst("g", i) == 1:1]
@@ -158,7 +157,7 @@ function runRACIPE(rxnNet, param_file::String; paramSets=1:10, num_ini::Int64=10
     # "ParamNo","ParameterNames"...,"Steady State Values"...,"Relabtive Stability"
     solMatrix = []::Vector{Any}
     # Loop througha all the parameters to solve them and get thier solutions
-    for f in paramSets
+    @showprogress for f in paramSets
         simu_results = simulateEnsemble!(rxnNet, param_df[f,:], num_ini, num_nodes)
         for (key, value) in simu_results
             push!(solMatrix, vcat(f, param_df[f,:], key, round(value, digits=4)))
@@ -174,8 +173,3 @@ end
 
 export runRACIPE
 
-##
-#include("TS.jl")
-
-##
-#@time runRACIPE("TS.prs", paramSets=1:10000, num_ini=100)

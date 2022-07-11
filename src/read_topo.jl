@@ -3,7 +3,6 @@ Created by: Pradyumna
 Created on: 18/08/2020
 Brief description: Functions to create a reaction network and the corresponding paramters from a topo file.
 =#
-
 using DelimitedFiles
 using DataFrames
 using Distributions
@@ -192,18 +191,64 @@ function createRxnNet(topoFile::String)
     # Close the reaction file
     close(rnfl)
     # Return the list of paramters
+    #return param_list = vcat(paramg_list, paramk_list, param_list)
+end
+
+#=
+Function: rxnParamsList
+Class: proper
+Input: Name of the topology file (*.topo)
+Output: Paramter Names List
+Description: Generates paramters list corresponding to the topology file
+=#
+##
+function rxnParamsList(topoFile::String)
+    # Intialise the parameter lists
+    param_list = String[]
+    # Production paramters
+    paramg_list = String[]
+    # Degredation paramters
+    paramk_list = String[]
+    # List of the lines that need to be writen in the reaction file
+    rxn_lines = String[]
+    # Read the topo file as a delimited file
+    topo_dat = readdlm(topoFile)
+    # Removing the empty line
+    topo_dat = topo_dat[1:end.!=1, :]
+    # Get the dictionary of nodes : their edge and type of edge
+    node_dict = net_dict_gen(topo_dat)
+    # Counter for number of the differntial equation
+    to = 1
+    # Loop to add the different reactions node wise in the ModellingToolkit.jl macro format
+    for k in keys(node_dict)
+        shill_parts = []
+        push!(shill_parts, "g$k")
+        push!(paramg_list, "g$k")
+        push!(paramk_list, "k$k")
+        for n = 1:2:length(node_dict[k])
+            cn = convert(String, node_dict[k][n])
+            if node_dict[k][n+1] == 2
+                push!(param_list, "t$cn$k", "f$cn$k", "n$cn$k")
+            elseif node_dict[k][n+1] == 1
+                push!(param_list, "t$cn$k", "f$cn$k", "n$cn$k")
+            end
+        end
+        to = to + 1
+    end
+    # Return the list of paramters
     return param_list = vcat(paramg_list, paramk_list, param_list)
 end
 
 
 #=
-Function: genParams
-Class: side effect
+Function: genPrsFile
+Class: side-effect
 Input: Name of the topology file (*.topo), List of the paramters (same as that in the rxn file), number of parameters
 Output: Paramter File
-Description: Generates paramters corresponding to the topology file
+Description: Generates paramters file corresponding to the topology file which contains their Min and Max values.
 =#
-function genParams(topoFile::String,param_list::Vector{String}; numParas::Int64 = 1000)
+##
+function genPrsFile(topoFile::String,param_list::Vector{String}; numParas::Int64 = 1000)
     # Read the topo file as a delimited file
     topo_dat = readdlm(topoFile)
     # Removing the empty line
@@ -211,21 +256,21 @@ function genParams(topoFile::String,param_list::Vector{String}; numParas::Int64 
     # Get the dictionary of nodes : their edge and type of edge
     node_dict = net_dict_gen(topo_dat)
     #Create an empty dataframe for the parameters
-    param_df = DataFrame()
+    param_df = DataFrame( Parameter = String[], MinValue = Float64[], MaxValue = Float64[])
     # Populating the parameter dataframe with generated parameter values
     for p in param_list
         if occursin("g", p)
-            param_df[!, p] = rand(Uniform(1, 100), numParas)
+            push!(param_df, [p, 1, 100])
             #param_df[!, p] = zeros(numParas)
         elseif occursin("k", p)
-            param_df[!, p] = rand(Uniform(0.1, 1), numParas)
+            push!(param_df, [p, 0.1, 1])
         elseif occursin("t", p)
-            param_df[!, p] = zeros(numParas)
+            push!(param_df, [p, 0, 0])
             #param_df[!, p] = rand(Uniform(0.02 * th, 1.98 * th), numParas)
         elseif occursin("n", p)
-            param_df[!, p] = round.(rand(Uniform(1, 6), numParas))
+            push!(param_df, [p, 1, 6])
         elseif occursin("f", p)
-            param_df[!, p] = rand(Uniform(1, 100), numParas)
+            push!(param_df, [p, 1, 100])
         end
     end
     # Genrating threshold values and replacing them in the datafame
@@ -242,12 +287,41 @@ function genParams(topoFile::String,param_list::Vector{String}; numParas::Int64 
                 end
             end
             th = thr_gen(numParas, numA, numI)
-            param_df[!, "t"*node_dict[k][n]*k] = rand(Uniform(0.02 * th, 1.98 * th), numParas)
+            param_df[param_df.Parameter .== "t"*node_dict[k][n]*k, :MinValue] .= 0.02 * th
+            param_df[param_df.Parameter .== "t"*node_dict[k][n]*k, :MaxValue] .= 1.98 * th
         end
     end
     # Write the dataframe in a csv file
-    CSV.write(replace(topoFile, "topo" => "prs"), param_df)
+    CSV.write(replace(topoFile, "topo" => "prs"), param_df; delim="\t")
 end
 
-export createRxnNet, genParams
+#=
+Function: genParams
+Class: side effect
+Input: Parameter file (*.prs); number of parameters
+Output: Paramter Set Dataframe
+Description: Generates paramters sets corresponding to the ranges given in the paramter file (*.prs).
+=#
+function genParams(prsFile::String; numParas::Int64 = 1000)
+    # Read the topo file as a delimited file
+    prsdf = CSV.File(prsFile; delim="\t") |> DataFrame
+    # Parameter column is the parameter list
+    param_list = prsdf[!,:Parameter]
+    #Create an empty dataframe for the parameters
+    param_df = DataFrame()
+    # Populating the parameter dataframe with generated parameter values
+    for p in param_list
+        minval = prsdf[prsdf.Parameter .== p, :MinValue][1]
+        maxval = prsdf[prsdf.Parameter .== p, :MaxValue][1]
+        if occursin("n", p)
+            param_df[!, p] = round.(rand(Uniform(minval, maxval), numParas))
+        else
+            param_df[!, p] = rand(Uniform(minval, maxval), numParas)
+        end
+    end
+    # Write the dataframe in a csv file
+    CSV.write(replace(prsFile, "prs" => "dat"), param_df)
+end
+
+export createRxnNet, genParams, rxnParamsList, genPrsFile
 

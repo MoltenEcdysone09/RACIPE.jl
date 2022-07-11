@@ -5,6 +5,6 @@ module RACIPE
 include("read_topo.jl")
 include("simul.jl")
 
-export createRxnNet, genParams, runRACIPE
+export createRxnNet, rxnParamsList, genPrsFile, genParams, runRACIPE
 
 end
