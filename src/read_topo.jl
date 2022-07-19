@@ -122,13 +122,13 @@ function createRxnNet(topoFile::String)
     write(rnfl, "#Shifted Hill Equation for -ve regulation\n")
     write(
           rnfl,
-          "Hsn(thr,N,lbd,cop) = ((1/lbd) + (1-(1/lbd))*(1/(1 + (N/thr)^cop)))\n",
+          "Hsn(Thr,N,Fld,Hill) = ((1/Fld) + (1-(1/Fld))*(1/(1 + (N/Thr)^Hill)))\n",
          )
     #write shifted hill equation for positive regualtion
     write(rnfl, "#Shifted Hill Equation for +ve regulation\n")
     write(
           rnfl,
-          "Hsp(thr,N,lbd,cop) = ((lbd) + (1-lbd)*(1/(1 + (N/thr)^cop)))/lbd\n\n",
+          "Hsp(Thr,N,Fld,Hill) = ((Fld) + (1-Fld)*(1/(1 + (N/Thr)^Hill)))/Fld\n\n",
          )
     # Intialise the parameter lists
     param_list = String[]
@@ -152,20 +152,20 @@ function createRxnNet(topoFile::String)
     # Loop to add the different reactions node wise in the ModellingToolkit.jl macro format
     for k in keys(node_dict)
         shill_parts = []
-        push!(shill_parts, "g$k")
-        push!(paramg_list, "g$k")
-        push!(paramk_list, "k$k")
+        push!(shill_parts, "Prod_$k")
+        push!(paramg_list, "Prod_$k")
+        push!(paramk_list, "Deg_$k")
         for n = 1:2:length(node_dict[k])
             cn = convert(String, node_dict[k][n])
             if node_dict[k][n+1] == 2
-                push!(shill_parts, "Hsn(t$cn$k,$cn,f$cn$k,n$cn$k)")
-                push!(param_list, "t$cn$k", "f$cn$k", "n$cn$k")
+                push!(shill_parts, "Hsn(InhThr_$cn"*"_$k"*",$cn"*",InhFld_$cn"*"_$k"*",Hill_$cn"*"_$k"*")")
+                push!(param_list, "InhThr_$cn"*"_$k", "InhFld_$cn"*"_$k", "Hill_$cn"*"_$k")
             elseif node_dict[k][n+1] == 1
-                push!(shill_parts, "Hsp(t$cn$k,$cn,f$cn$k,n$cn$k)")
-                push!(param_list, "t$cn$k", "f$cn$k", "n$cn$k")
+                push!(shill_parts, "Hsp(ActThr_$cn"*"_$k"*",$cn"*",ActFld_$cn"*"_$k"*",Hill_$cn"*"_$k"*")")
+                push!(param_list, "ActThr_$cn"*"_$k", "ActFld_$cn"*"_$k", "Hill_$cn"*"_$k")
             end
         end
-        push!(rxn_lines, "\t" * "du[" * string(to) * "] = " * join(shill_parts, "*") * " - k$k*$k\n")
+        push!(rxn_lines, "\t" * "du[" * string(to) * "] = " * join(shill_parts, "*") * " - Deg_$k"*"*$k"*"\n")
         to = to + 1
     end
     #
@@ -222,15 +222,15 @@ function rxnParamsList(topoFile::String)
     # Loop to add the different reactions node wise in the ModellingToolkit.jl macro format
     for k in keys(node_dict)
         shill_parts = []
-        push!(shill_parts, "g$k")
-        push!(paramg_list, "g$k")
-        push!(paramk_list, "k$k")
+        push!(shill_parts, "Prod_$k")
+        push!(paramg_list, "Prod_$k")
+        push!(paramk_list, "Deg_$k")
         for n = 1:2:length(node_dict[k])
             cn = convert(String, node_dict[k][n])
             if node_dict[k][n+1] == 2
-                push!(param_list, "t$cn$k", "f$cn$k", "n$cn$k")
+                push!(param_list, "InhThr_$cn"*"_$k", "InhFld_$cn"*"_$k", "Hill_$cn"*"_$k")
             elseif node_dict[k][n+1] == 1
-                push!(param_list, "t$cn$k", "f$cn$k", "n$cn$k")
+                push!(param_list, "ActThr_$cn"*"_$k", "ActFld_$cn"*"_$k", "Hill_$cn"*"_$k")
             end
         end
         to = to + 1
@@ -261,17 +261,19 @@ function genPrsFile(topoFile::String; numParas::Int64 = 1000)
     param_df = DataFrame( Parameter = String[], MinValue = Float64[], MaxValue = Float64[])
     # Populating the parameter dataframe with generated parameter values
     for p in param_list
-        if occursin("g", p)
+        if occursin("Prod_", p)
             push!(param_df, [p, 1, 100])
-            #param_df[!, p] = zeros(numParas)
-        elseif occursin("k", p)
+        elseif occursin("Deg_", p)
             push!(param_df, [p, 0.1, 1])
-        elseif occursin("t", p)
+        elseif occursin("InhThr_", p)
             push!(param_df, [p, 0, 0])
-            #param_df[!, p] = rand(Uniform(0.02 * th, 1.98 * th), numParas)
-        elseif occursin("n", p)
+        elseif occursin("ActThr_", p)
+            push!(param_df, [p, 0, 0])
+        elseif occursin("Hill_", p)
             push!(param_df, [p, 1, 6])
-        elseif occursin("f", p)
+        elseif occursin("InhFld_", p)
+            push!(param_df, [p, 1, 100])
+        elseif occursin("ActFld_", p)
             push!(param_df, [p, 1, 100])
         end
     end
@@ -289,8 +291,13 @@ function genPrsFile(topoFile::String; numParas::Int64 = 1000)
                 end
             end
             th = thr_gen(numParas, numA, numI)
-            param_df[param_df.Parameter .== "t"*node_dict[k][n]*k, :MinValue] .= 0.02 * th
-            param_df[param_df.Parameter .== "t"*node_dict[k][n]*k, :MaxValue] .= 1.98 * th
+            if node_dict[k][n+1] == 2
+                param_df[param_df.Parameter .== "InhThr_"*node_dict[k][n]*"_"*k, :MinValue] .= 0.02 * th
+                param_df[param_df.Parameter .== "InhThr_"*node_dict[k][n]*"_"*k, :MaxValue] .= 1.98 * th
+            elseif node_dict[k][n+1] == 1
+                param_df[param_df.Parameter .== "ActThr_"*node_dict[k][n]*"_"*k, :MinValue] .= 0.02 * th
+                param_df[param_df.Parameter .== "ActThr_"*node_dict[k][n]*"_"*k, :MaxValue] .= 1.98 * th
+            end
         end
     end
     # Write the dataframe in a csv file
@@ -298,7 +305,7 @@ function genPrsFile(topoFile::String; numParas::Int64 = 1000)
 end
 
 #=
-Function: genParams
+FunctionParams
 Class: side effect
 Input: Parameter file (*.prs); number of parameters
 Output: Paramter Set Dataframe
@@ -315,14 +322,14 @@ function genParams(prsFile::String; numParas::Int64 = 1000)
     for p in param_list
         minval = prsdf[prsdf.Parameter .== p, :MinValue][1]
         maxval = prsdf[prsdf.Parameter .== p, :MaxValue][1]
-        if occursin("n", p)
+        if occursin("Hill_", p)
             param_df[!, p] = round.(rand(Uniform(minval, maxval), numParas))
         else
             param_df[!, p] = rand(Uniform(minval, maxval), numParas)
         end
     end
     # Write the dataframe in a csv file
-    CSV.write(replace(prsFile, "prs" => "dat"), param_df)
+    CSV.write(replace(prsFile, ".prs" => "_parameters.dat"), param_df)
 end
 
 export createRxnNet, genParams, rxnParamsList, genPrsFile
