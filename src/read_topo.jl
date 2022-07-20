@@ -122,7 +122,7 @@ function createRxnNet(topoFile::String)
     write(rnfl, "#Shifted Hill Equation for -ve regulation\n")
     write(
           rnfl,
-          "Hsn(Thr,N,Fld,Hill) = ((1/Fld) + (1-(1/Fld))*(1/(1 + (N/Thr)^Hill)))\n",
+          "Hsn(Thr,N,Fld,Hill) = ((Fld) + (1-Fld)*(1/(1 + (N/Thr)^Hill)))\n",
          )
     #write shifted hill equation for positive regualtion
     write(rnfl, "#Shifted Hill Equation for +ve regulation\n")
@@ -272,7 +272,7 @@ function genPrsFile(topoFile::String; numParas::Int64 = 1000)
         elseif occursin("Hill_", p)
             push!(param_df, [p, 1, 6])
         elseif occursin("InhFld_", p)
-            push!(param_df, [p, 1, 100])
+            push!(param_df, [p, 0.1, 1])
         elseif occursin("ActFld_", p)
             push!(param_df, [p, 1, 100])
         end
