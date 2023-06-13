@@ -1,5 +1,5 @@
 ##
-using DifferentialEquations
+#using DifferentialEquations
 using CSV
 using DataFrames
 using ModelingToolkit
@@ -7,8 +7,8 @@ using OrdinaryDiffEq
 using Distributions
 using ProgressMeter
 using StatsBase
-using DataStructures: SortedDict, Reverse
-using Combinatorics
+#using DataStructures: SortedDict, Reverse
+#using Combinatorics
 
 #=
 Function: round_log!
@@ -110,7 +110,9 @@ Description: Takes in  the paramter files, parses it into a dataframe, and then 
 function genParamCols(param_file::String)
     param_df = CSV.read(param_file, DataFrame)
     param_names = names(param_df)
-    node_names = [i[2:end] for i in param_names if findfirst("g", i) == 1:1]
+    #node_names = [i[6:end] for i in param_names if findfirst("Prod_", i) == 1:5]
+    node_names = [i[6:end] for i in param_names if occursin("Prod_", i)]
+    print(node_names)
     return param_names, node_names
 end
 

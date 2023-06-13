@@ -140,6 +140,9 @@ function createRxnNet(topoFile::String)
     rxn_lines = String[]
     # Read the topo file as a delimited file
     topo_dat = readdlm(topoFile)
+    #topo_dat = CSV.read(topoFile, DataFrame) 
+    #sort!(topo_dat, [:Target, :Source, :Type])
+    #println(topo_dat)
     # Removing the empty line
     topo_dat = topo_dat[1:end.!=1, :]
     # Get the dictionary of nodes : their edge and type of edge
@@ -313,7 +316,7 @@ Description: Generates paramters sets corresponding to the ranges given in the p
 =#
 function genParams(prsFile::String; numParas::Int64 = 1000)
     # Read the topo file as a delimited file
-    prsdf = CSV.File(prsFile; delim="\t") |> DataFrame
+    prsdf = CSV.read(prsFile, DataFrame)
     # Parameter column is the parameter list
     param_list = prsdf[!,:Parameter]
     #Create an empty dataframe for the parameters
