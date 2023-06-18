@@ -3,13 +3,13 @@ Created by: Pradyumna
 Created on: 18/08/2020
 Brief description: Functions to create a reaction network and the corresponding paramters from a topo file.
 =#
-using DelimitedFiles
-using DataFrames
-using Distributions
-using OrderedCollections
-using Statistics
-using DifferentialEquations
-using CSV
+#using DelimitedFiles
+#using DataFrames
+#using Distributions
+#using OrderedCollections
+#using Statistics
+#using DifferentialEquations
+#using CSV
 
 
 #=
@@ -139,12 +139,12 @@ function createRxnNet(topoFile::String)
     # List of the lines that need to be writen in the reaction file
     rxn_lines = String[]
     # Read the topo file as a delimited file
-    topo_dat = readdlm(topoFile)
-    #topo_dat = CSV.read(topoFile, DataFrame) 
-    #sort!(topo_dat, [:Target, :Source, :Type])
-    #println(topo_dat)
+    #topo_dat = readdlm(topoFile)
+    topo_dat = CSV.read(topoFile, DataFrame) 
+    sort!(topo_dat, [:Target, :Source, :Type])
+    topo_dat = Matrix(topo_dat)
     # Removing the empty line
-    topo_dat = topo_dat[1:end.!=1, :]
+    #topo_dat = topo_dat[1:end.!=1, :]
     # Get the dictionary of nodes : their edge and type of edge
     node_dict = net_dict_gen(topo_dat)
     #Start writing the reaction netowrk in a julia file.
@@ -215,9 +215,12 @@ function rxnParamsList(topoFile::String)
     # List of the lines that need to be writen in the reaction file
     rxn_lines = String[]
     # Read the topo file as a delimited file
-    topo_dat = readdlm(topoFile)
+    #topo_dat = readdlm(topoFile)
+    topo_dat = CSV.read(topoFile, DataFrame) 
+    sort!(topo_dat, [:Target, :Source, :Type])
+    topo_dat = Matrix(topo_dat)
     # Removing the empty line
-    topo_dat = topo_dat[1:end.!=1, :]
+    #topo_dat = topo_dat[1:end.!=1, :]
     # Get the dictionary of nodes : their edge and type of edge
     node_dict = net_dict_gen(topo_dat)
     # Counter for number of the differntial equation
@@ -255,9 +258,12 @@ function genPrsFile(topoFile::String; numParas::Int64 = 1000)
     #Create a lsit of the parameters from the topo file
     param_list = rxnParamsList(topoFile)
     # Read the topo file as a delimited file
-    topo_dat = readdlm(topoFile)
+    #topo_dat = readdlm(topoFile)
+    topo_dat = CSV.read(topoFile, DataFrame) 
+    sort!(topo_dat, [:Target, :Source, :Type])
+    topo_dat = Matrix(topo_dat)
     # Removing the empty line
-    topo_dat = topo_dat[1:end.!=1, :]
+    #topo_dat = topo_dat[1:end.!=1, :]
     # Get the dictionary of nodes : their edge and type of edge
     node_dict = net_dict_gen(topo_dat)
     #Create an empty dataframe for the parameters
